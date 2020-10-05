@@ -361,6 +361,7 @@ class FSManager(FileContentsManager):
         # TODO hidden
         # if is_hidden(path, self.root_dir) and not self.allow_hidden:
         #     raise web.HTTPError(400, u'Cannot create hidden directory %r' % path)
+        
         if not self._pyfilesystem_instance.exists(path):
             self._pyfilesystem_instance.makedir(path)
         elif not self._pyfilesystem_instance.isdir(path):
