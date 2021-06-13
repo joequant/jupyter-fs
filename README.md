@@ -1,12 +1,12 @@
 <p align="center">
-<img alt="jupyter-fs" src="https://raw.githubusercontent.com/telamonian/jupyter-fs/add-auth/docs/brand-icon.svg" width="400">
+<img alt="jupyter-fs" src="https://raw.githubusercontent.com/jpmorganchase/jupyter-fs/main/docs/brand-icon.svg" width="400">
 </p>
 
 #
 
 <p>
-<a href="https://dev.azure.com/tpaine154/jupyter/_apis/build/status/jpmorganchase.jupyter-fs?branchName=master"><img alt="azure ci status" src="https://dev.azure.com/tpaine154/jupyter/_apis/build/status/jpmorganchase.jupyter-fs?branchName=master"></a>
-<a href="https://ci.appveyor.com/project/telamonian/jupyter-fs/branch/master"><img alt="appveyor ci status (telamonian fork)" src="https://ci.appveyor.com/api/projects/status/d8flhw12vpvgime4/branch/master?svg=true"></a>
+<a href="https://dev.azure.com/tpaine154/jupyter/_apis/build/status/jpmorganchase.jupyter-fs?branchName=main"><img alt="azure ci status" src="https://dev.azure.com/tpaine154/jupyter/_apis/build/status/jpmorganchase.jupyter-fs?branchName=main"></a>
+<a href="https://ci.appveyor.com/project/telamonian/jupyter-fs/branch/main"><img alt="appveyor ci status (telamonian fork)" src="https://ci.appveyor.com/api/projects/status/d8flhw12vpvgime4/branch/main?svg=true"></a>
 <a href="https://pypi.python.org/pypi/jupyter-fs"><img alt="pypi package" src="https://img.shields.io/pypi/v/jupyter-fs.svg"></a>
 <a href="https://www.npmjs.com/package/jupyter-fs"><img alt="npm package" src="https://img.shields.io/npm/v/jupyter-fs.svg"></a>
 </p>
@@ -25,14 +25,14 @@ pip install jupyter-fs
 
 ## Configure
 
-Add the following to your `jupyter_notebook_config.json`:
+Add the following to your `jupyter_server_config.json`:
 
 ```json
 {
-  "NotebookApp": {
+  "ServerApp": {
     "contents_manager_class": "jupyterfs.metamanager.MetaManager",
-    "nbserver_extensions": {
-      "jupyterfs": true
+    "jpserver_extensions": {
+      "jupyterfs.extension": true
     }
   }
 }
@@ -123,10 +123,10 @@ The `"url"` field jupyter-fs config is based on the PyFilesystem [opener url](ht
 
 ## Server-side settings
 
-If you prefer to set up your filesystem resources in the server-side config, you can do so. For example, you can set up a local filesystem by adding the following to your `jupyter_notebook_config.py` file:
+If you prefer to set up your filesystem resources in the server-side config, you can do so. For example, you can set up a local filesystem by adding the following to your `jupyter_server_config.py` file:
 
 ```python
-c.jupyterfs.resources = [
+c.Jupyterfs.resources = [
     {
         "name": "local_test",
         "url": "osfs:///Users/foo/test"
@@ -134,22 +134,22 @@ c.jupyterfs.resources = [
 ]
 ```
 
-ALternatively, you can add resource specifications alongside the basic jupyter-fs config in your `jupyter_notebook_config.json` file:
+ALternatively, you can add resource specifications alongside the basic jupyter-fs config in your `jupyter_server_config.json` file:
 
 ```json
 {
-  "NotebookApp": {
+  "ServerApp": {
     "contents_manager_class": "jupyterfs.metamanager.MetaManager",
-    "nbserver_extensions": {
+    "jpserver_extensions": {
       "jupyterfs.extension": true
     }
   },
-  "jupyterfs": {
+  "Jupyterfs": {
     "resources": [
       {
         "name": "local_test",
         "url": "osfs:///Users/foo/test"
-      },
+      }
     ]
   }
 }

@@ -7,33 +7,40 @@
 #
 from hashlib import md5
 import json
+import re
 from tornado import web
 
-from notebook.base.handlers import APIHandler
-from notebook.services.contents.largefilemanager import LargeFileManager
-from notebook.services.contents.manager import ContentsManager
+from jupyter_server.base.handlers import APIHandler
+from jupyter_server.services.contents.manager import ContentsManager
 
 from .auth import substituteAsk, substituteEnv, substituteNone
+from .config import Jupyterfs as JupyterfsConfig
 from .fsmanager import FSManager
-from .pathutils import path_first_arg, path_second_arg, path_kwarg, path_old_new
+from .pathutils import path_first_arg, path_second_arg, path_kwarg, path_old_new, getDrive, isDrive, stripDrive
 
 __all__ = ["MetaManager", "MetaManagerHandler"]
 
 
 class MetaManager(ContentsManager):
+    copy_pat = re.compile(r'\-Copy\d*\.')
+
     def __init__(self, **kwargs):
-        self.resources = []
+        super().__init__(**kwargs)
+        self._jupyterfsConfig = JupyterfsConfig(config=self.config)
 
-        self._default_cm = ('', LargeFileManager(**kwargs))
-
-        self._managers = dict([self._default_cm])
-
+        self._kwargs = kwargs
         self._pyfs_kw = {}
-        self._pyfs_kw.update(kwargs)
 
-        # remove kwargs not relevant to pyfs
-        self._pyfs_kw.pop('parent')
-        self._pyfs_kw.pop('log')
+        self.resources = []
+        self._default_root_manager = self._jupyterfsConfig.root_manager_class(**self._kwargs)
+        self._managers = dict((('', self._default_root_manager),))
+
+        # copy kwargs to pyfs_kw, removing kwargs not relevant to pyfs
+        self._pyfs_kw.update(kwargs)
+        for k in (k for k in ('config', 'log', 'parent') if k in self._pyfs_kw):
+            self._pyfs_kw.pop(k)
+
+        self.initResource(*self._jupyterfsConfig.resources)
 
     def initResource(self, *resources, options={}):
         """initialize one or more (name, url) tuple representing a PyFilesystem resource specification
@@ -43,7 +50,7 @@ class MetaManager(ContentsManager):
         verbose = 'verbose' in options and options['verbose']
 
         self.resources = []
-        managers = dict([self._default_cm])
+        managers = dict((('', self._default_root_manager),))
 
         for resource in resources:
             # server side resources don't have a default 'auth' key
@@ -117,6 +124,54 @@ class MetaManager(ContentsManager):
     def root_dir(self):
         return self.root_manager.root_dir
 
+    def copy(self, from_path, to_path=None):
+        """Copy an existing file and return its new model.
+
+        If to_path not specified, it will be the parent directory of from_path.
+        If to_path is a directory, filename will increment `from_path-Copy#.ext`.
+        Considering multi-part extensions, the Copy# part will be placed before the first dot for all the extensions except `ipynb`.
+        For easier manual searching in case of notebooks, the Copy# part will be placed before the last dot.
+
+        from_path must be a full path to a file.
+        """
+        path = from_path.strip('/')
+        if to_path is not None:
+            to_path = to_path.strip('/')
+
+        if '/' in path:
+            from_dir, from_name = path.rsplit('/', 1)
+        else:
+            from_dir = ''
+            from_name = path
+
+        model = self.get(path)
+        model.pop('path', None)
+        model.pop('name', None)
+        if model['type'] == 'directory':
+            raise web.HTTPError(400, "Can't copy directories")
+        if to_path is None:
+            to_path = from_dir
+        if self.dir_exists(to_path):
+            name = self.copy_pat.sub(u'.', from_name)
+            # ensure that any drives are stripped from the resulting filename
+            to_name = stripDrive(self.increment_filename(name, to_path, insert='-Copy'))
+            # separate path and filename with a slash if to_path is not just a drive string
+            to_path = (u'{0}{1}' if isDrive(to_path) else u'{0}/{1}').format(to_path, to_name)
+
+        model = self.save(model, to_path)
+        return model
+
+    def _getManagerForPath(self, path):
+        drive = getDrive(path)
+        mgr = self._managers.get(drive)
+        if mgr is None:
+            raise web.HTTPError(
+                404,
+                "Couldn't find manager {mgrName} for {path}".format(mgrName=drive, path=path)
+            )
+
+        return mgr, stripDrive(path)
+
     is_hidden = path_first_arg('is_hidden', False)
     dir_exists = path_first_arg('dir_exists', False)
     file_exists = path_kwarg('file_exists', '', False)
@@ -144,9 +199,14 @@ class MetaManager(ContentsManager):
     )
 
 class MetaManagerHandler(APIHandler):
+    _jupyterfsConfig = None
+
     @property
     def config_resources(self):
-        return self.config.get('jupyterfs', {}).get('resources', [])
+        if self._jupyterfsConfig is None:
+            self._jupyterfsConfig = JupyterfsConfig(config=self.config)
+
+        return self._jupyterfsConfig.resources
 
     @web.authenticated
     async def get(self):

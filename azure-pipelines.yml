@@ -22,7 +22,7 @@ parameters:
     - bash: env
       displayName: 'List all environment variables'
 
-    - bash: pip install --upgrade pip wheel setuptools
+    - bash: pip install --upgrade pip wheel setuptools jupyterlab
       displayName: 'Install Python base dependencies'
 
     - bash: |
@@ -138,13 +138,14 @@ parameters:
     - script: make testjs YARN=yarn
       displayName: 'Run the Jest tests'
 
+# TODO: remove `python -m pip install --pre -U jupyterlab` line below once jlab 3.1.0 drops
 - name: testBrowserSteps
   type: stepList
   default:
     - bash: |
         set -ex
-        pip install .
-        jupyter lab build --debug
+        python -m pip install --pre -U jupyterlab
+        python -m pip install -U . -v
       displayName: 'Standard jupyter-fs install'
 
     - bash: |

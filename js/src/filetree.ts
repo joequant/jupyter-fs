@@ -25,14 +25,6 @@ import { fileTreeIcon } from "./icons";
 import { Uploader } from "./upload";
 import { CommandIDs, doRename, fileSizeString, OpenDirectWidget, Patterns, switchView, writeZipFile } from "./utils";
 
-function u_btoa(str: string) {
-  return btoa(encodeURIComponent(str));
-}
-
-function u_atob(str: string) {
-  return decodeURIComponent(atob(str));
-}
-
 export class FileTree extends Widget {
   cm: ContentsManager;
   dr: DocumentRegistry;
@@ -134,7 +126,7 @@ export class FileTree extends Widget {
     });
     Promise.all(array).then(results => {
       for (const r in results) {
-        const row_element = this.node.querySelector("[id='" + u_btoa(results[r].path.replace(this.basepath, "")) + "']");
+        const row_element = this.node.querySelector("[id='" + btoa(results[r].path.replace(this.basepath, "")) + "']");
         this.buildTableContents(results[r].content, 1 + results[r].path.split("/").length, row_element);
       }
     }).catch(reasons => {
@@ -162,8 +154,8 @@ export class FileTree extends Widget {
   buildTableContents(data: any, level: number, parent: any) {
     const commands = this.commands;
     const map = this.sortContents(data);
-    data.forEach((item: any, index: any) => {
-      const sorted_entry = map[index];
+    for (const index in data) {
+      const sorted_entry = map[parseInt(index, 10)];
       const entry = data[sorted_entry[1]];
       const tr = this.createTreeElement(entry, level);
 
@@ -237,12 +229,14 @@ export class FileTree extends Widget {
         parent.after(tr);
         parent = tr;
       }
-    });
+    }
   }
 
   sortContents(data: any) {
-    const names = data.map( (value: any, index: number,
-      array: any) => [value.name, index]);
+    const names = [];
+    for (const i in data) {
+      names[names.length] = [data[i].name, parseInt(i, 10)];
+    }
     return names.sort();
   }
 
@@ -317,7 +311,7 @@ export class FileTree extends Widget {
     tr.appendChild(td1);
     tr.appendChild(td2);
     tr.appendChild(td3);
-    tr.id = u_btoa(object.path);
+    tr.id = btoa(object.path);
 
     return tr;
   }
@@ -444,18 +438,18 @@ export namespace FileTree {
         const row = args.row as string;
         const level = args.level as number;
 
-        let row_element: HTMLElement = widget.node.querySelector("[id='" + u_btoa(row) + "']");
+        let row_element: HTMLElement = widget.node.querySelector("[id='" + btoa(row) + "']");
 
-        if (row_element.nextElementSibling && u_atob(row_element.nextElementSibling.id).startsWith(row + "/")) { // next element in folder, already constructed
+        if (row_element.nextElementSibling && atob(row_element.nextElementSibling.id).startsWith(row + "/")) { // next element in folder, already constructed
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           const display = switchView((widget.node.querySelector("[id='" + row_element.nextElementSibling.id + "']") as HTMLElement).style.display);
           widget.controller[row].open = !(widget.controller[row].open);
           const open_flag = widget.controller[row].open;
           // open folder
-          while (row_element.nextElementSibling && u_atob(row_element.nextElementSibling.id).startsWith(row + "/")) {
+          while (row_element.nextElementSibling && atob(row_element.nextElementSibling.id).startsWith(row + "/")) {
             row_element = (widget.node.querySelector("[id='" + row_element.nextElementSibling.id + "']"));
             // check if the parent folder is open
-            if (!(open_flag) || widget.controller[PathExt.dirname(u_atob(row_element.id))].open) {
+            if (!(open_flag) || widget.controller[PathExt.dirname(atob(row_element.id))].open) {
               row_element.style.display = display;
             }
           }
@@ -501,7 +495,7 @@ export namespace FileTree {
           Promise.all(array).then(results => {
             for (const r in results) {
               if (results[r].type === "directory") {
-                const row_element = widget.node.querySelector("[id='" + u_btoa(results[r].path) + "']");
+                const row_element = widget.node.querySelector("[id='" + btoa(results[r].path) + "']");
                 widget.buildTableContents(results[r].content, 1 + results[r].path.split("/").length, row_element);
               }
             }
@@ -535,14 +529,14 @@ export namespace FileTree {
     app.commands.addCommand((CommandIDs.set_context + ":" + widget.id), {
       execute: args => {
         if (widget.selected !== "") {
-          const element = (widget.node.querySelector("[id='" + u_btoa(widget.selected) + "']"));
+          const element = (widget.node.querySelector("[id='" + btoa(widget.selected) + "']"));
           if (element !== null) {
             element.className = element.className.replace("selected", "");
           }
         }
         widget.selected = args.path as string;
         if (widget.selected !== "") {
-          const element = widget.node.querySelector("[id='" + u_btoa(widget.selected) + "']");
+          const element = widget.node.querySelector("[id='" + btoa(widget.selected) + "']");
           if (element !== null) {
             element.className += " selected";
           }
@@ -555,7 +549,7 @@ export namespace FileTree {
       execute: args => {
         if (widget.selected !== "") {
           // eslint-disable-next-line no-shadow
-          const element = (widget.node.querySelector("[id='" + u_btoa(widget.selected) + "']"));
+          const element = (widget.node.querySelector("[id='" + btoa(widget.selected) + "']"));
           if (element !== null) {
             element.className = element.className.replace("selected", "");
           }
@@ -564,7 +558,7 @@ export namespace FileTree {
           return;
         }
         widget.selected = args.path as string;
-        const element = widget.node.querySelector("[id='" + u_btoa(widget.selected) + "']");
+        const element = widget.node.querySelector("[id='" + btoa(widget.selected) + "']");
         if (element !== null) {
           element.className += " selected";
         }
@@ -574,7 +568,7 @@ export namespace FileTree {
 
     app.commands.addCommand((CommandIDs.rename + ":" + widget.id), {
       execute: () => {
-        const td = widget.node.querySelector("[id='" + u_btoa(widget.selected) + "']").
+        const td = widget.node.querySelector("[id='" + btoa(widget.selected) + "']").
           getElementsByClassName("filetree-item-name")[0];
         const text_area = td.getElementsByClassName("filetree-name-span")[0] as HTMLElement;
 

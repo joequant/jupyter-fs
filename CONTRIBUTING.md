@@ -6,39 +6,136 @@ We invite you to contribute enhancements. Upon review you will be required to co
 
 If you have any questions about the contribution process, please feel free to send an email to [open_source@jpmorgan.com](mailto:open_source@jpmorgan.com).
 
-## Install for Development
+## Setup for Development
 
-- To get everything set up initially, you `cd` to your jupyter-fs repo and then just do:
+### Install
+
+Note: You will need NodeJS to build the extension package.
+
+The `jlpm` command is JupyterLab's pinned version of
+[yarn](https://yarnpkg.com/) that is installed with JupyterLab. You may use
+`yarn` or `npm` in lieu of `jlpm` below.
+
+```bash
+# Clone the repo to your local environment
+# Change directory to the jupyter-fs directory
+# Install package in development mode
+make dev_install
+```
+
+### Configure
+
+You'll need to set the contents manager class in the jupyter server config. Paste the following json:
+
+```json
+{
+  "ServerApp": {
+    "contents_manager_class": "jupyterfs.metamanager.MetaManager"
+  }
+}
+```
+
+into a file named `${CONFIG}/jupyter_server_config.json`, where `CONFIG` is any of the config paths returned by the `jupyter --paths` command.
+
+### Rebuild after you make changes
+
+After you make a change to the Typescript sources, you can rebuild jupyter-fs once by running the following:
+
+```bash
+# Rebuild extension Typescript source after making changes
+(cd js; jlpm run build)
+```
+
+You can watch the source directory and run JupyterLab at the same time in different terminals to watch for changes in the extension's source and automatically rebuild the extension.
+
+```bash
+# Watch the source directory in one terminal, automatically rebuilding when needed
+(cd js; jlpm run watch)
+# Run JupyterLab in another terminal
+jupyter lab
+```
+
+With the watch command running, every saved change will immediately be built locally and available in your running JupyterLab. Refresh JupyterLab to load the change in your browser (you may need to wait several seconds for the extension to be rebuilt).
+
+### Sourcemaps
+
+By default, the `jlpm run build` command generates the source maps for this extension to make it easier to debug using the browser dev tools. To also generate source maps for the JupyterLab core extensions, you can run the following command:
+
+```bash
+jupyter lab build --minimize=False
+```
+
+## Do a Release
+
+1. Have access to `jupyter-fs` on pypi and npmjs
+
+2. Checkout new release branch
 
     ```bash
-    make dev_install
+    git checkout -b release-v<major>.<minor>.<patch>
     ```
 
-- If, for whatever reason, you need to reinstall the Python package, do:
+3. Bump version
 
     ```bash
-    pip install -e .
+    # example: bump2version patch --allow-dirty --new-version "0.0.6final0"
+    bump2version patch --allow-dirty --new-version "<major>.<minor>.<patch>final0"
     ```
 
-- When you're actively developing the Typescript sources, you can do a rebuild with:
+4. Do release
 
     ```bash
-    jlpm build
+    # dry run
+    # make publishdry
+
+    make publish
     ```
 
-    Alternatively, you can do a watch build, which automatically rebuilds your code when you make changes to jupyter-fs:
+5. Push release branch to upstream
 
     ```bash
-    jlpm build:watch
+    git push -u upstream release-v<major>.<minor>.<patch> --tags
     ```
 
-    If you then also run JupyterLab in watch mode:
+6. Open a PR for the release branch on https://github.com/jpmorganchase/jupyter-fs
+
+## Do a Release
+
+1. Have access to `jupyter-fs` on pypi and npmjs
+
+2. Checkout new release branch
 
     ```bash
-    jupyter lab --watch
+    git checkout -b release-v<major>.<minor>.<patch>
     ```
 
-    you can make edits to the typescript sources and then see the effect of your changes by refreshing JupyterLab's browser window.
+3. Bump version
+
+    ```bash
+    # example: bump2version patch --new-version "0, 0, 5, 'final', 0"
+    bump2version patch --new-version "<major>, <minor>, <patch>, 'final', 0"
+    ```
+
+4. Do release
+
+    ```bash
+    make publish
+    ```
+
+5. Tag and push
+
+    ```bash
+    git tag v<major>.<minor>.<patch>
+    git push upstream v<major>.<minor>.<patch>
+    ```
+
+6. Push release branch to your fork
+
+    ```bash
+    git push -u origin release-v<major>.<minor>.<patch>
+    ```
+
+7. Open a PR for the release branch on https://github.com/jpmorganchase/jupyter-fs
 
 ## Do a Release
 

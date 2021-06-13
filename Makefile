@@ -29,55 +29,52 @@ lint: ## run linter
 fixjs:  ## run autopep8/tslint fix
 	cd js; ${YARN} fix
 
-fixpy:  ## run autopep8/tslint fix
-	${PYTHON} -m autopep8 --in-place -r -a -a jupyterfs/
+fixpy:  ## run autopep8
+	${PYTHON} -m autopep8 --in-place -r -a -a jupyterfs/ setup.py
 
 fix:  ## run autopep8/tslint fix
 	make fixjs
 	make fixpy
 
-annotate: ## MyPy type annotation check
-	${PYTHON} -m mypy -s jupyterfs
-
-annotate_l: ## MyPy type annotation check - count only
-	${PYTHON} -m mypy -s jupyterfs | wc -l
-
 clean: ## clean the repository
+	## python tmp state
 	find . -name "__pycache__" | xargs  rm -rf
 	find . -name "*.pyc" | xargs rm -rf
 	find . -name ".ipynb_checkpoints" | xargs  rm -rf
-	rm -rf build coverage* dist *.egg-info *junit.xml .jupyter MANIFEST node_modules package-lock.json pip-wheel-metadata yarn.lock
-	rm -rf js/dist js/lib js/node_modules js/package-lock.json js/tsconfig.tsbuildinfo js/yarn.lock
-	rm -rf jupyterfs/labdist
+	## binder/repo2docker mess
+	rm -rf binder/.[!.]* binder/*.ipynb
+	## build state
+	cd js; ${YARN} clean:slate
+	rm -rf *.egg-info *junit.xml .*-log.txt .jupyter/ .local/ .pytest_cache/ build/ coverage* dist/ MANIFEST node_modules/ pip-wheel-metadata jupyterfs/labextensionpmorganchase/jupyter-fs/blob/main/js/src/auth.tsx
 	# make -C ./docs clean
+	## package lock files
+	# rm -rf package-lock.json yarn-lock.json js/package-lock.json js/yarn-lock.json
 
-dev_install: ## set up the repo for active development
-	${PIP} install -e .[dev]
-	${PYTHON} -m jupyter serverextension enable --py jupyterfs
-	cd js; ${YARN} build:integrity
-	cd js; ${PYTHON} -m jupyter labextension install .
+dev_install: dev_serverextension dev_labextension ## set up the repo for active development
 	# verify
 	${PYTHON} -m jupyter serverextension list
+	${PYTHON} -m jupyter server extension list
 	${PYTHON} -m jupyter labextension list
+
+dev_labextension:  ## build and install labextension for active development
+	${PYTHON} -m jupyter labextension develop --overwrite .
+
+dev_serverextension:  ## install and enable serverextension for active development
+	${PIP} install -e .[dev]
+	${PYTHON} -m jupyter server extension enable --py jupyterfs.extension
 
 docs:  ## make documentation
 	make -C ./docs html
 	open ./docs/_build/html/index.html
 
-install:  ## install to site-packages
+install:  ## do standard install of both server/labextension to site-packages
 	${PIP} install .
 
-serverextension: install ## enable serverextension
-	${PYTHON} -m jupyter serverextension enable --py jupyterfs
-
 js:  ## build javascript
-	cd js; ${YARN} build:integrity
-
-labextension: js ## enable labextension
-	${PYTHON} -m jupyter labextension install .
+	cd js; ${YARN} integrity
+	cd js; ${YARN} build
 
 dist: clean ## create dists
-	cd js; ${YARN} install
 	${PYTHON} setup.py sdist bdist_wheel
 
 publish: dist  ## dist to pypi and npm
@@ -101,4 +98,5 @@ help:
 print-%:
 	@echo '$*=$($*)'
 
-.PHONY: clean dist docs help install js labextension serverextension test tests
+.PHONY: clean dev_install dev_labextension dev_serverextension dist docs help install js test tests
+

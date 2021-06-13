@@ -12,12 +12,12 @@ import { IWindowResolver } from "@jupyterlab/apputils";
 import { IDocumentManager } from "@jupyterlab/docmanager";
 import { ISettingRegistry } from "@jupyterlab/settingregistry";
 import { DisposableSet } from "@lumino/disposable";
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import * as React from "react";
+import * as ReactDOM from "react-dom";
 
 import { AskDialog, askRequired } from "./auth";
 import { FSComm, IFSOptions, IFSResource } from "./filesystem";
-import { FileTree } from "./filetree";
+import { TreeFinderSidebar } from "./treefinder";
 
 // tslint:disable: variable-name
 
@@ -46,7 +46,7 @@ async function activate(
 ) {
   const comm = new FSComm();
   let disposable = new DisposableSet();
-  const sidebarProps: FileTree.ISidebarProps = {
+  const sidebarProps: TreeFinderSidebar.ISidebarProps = {
     app,
     manager,
     paths,
@@ -64,7 +64,7 @@ async function activate(
     console.warn(`Failed to load settings for the jupyter-fs extension.\n${error}`);
   }
 
-  async function refreshWidgets({resources, options}: {resources: IFSResource[], options: IFSOptions}) {
+  async function refreshWidgets({ resources, options }: {resources: IFSResource[]; options: IFSOptions}) {
     if (options.verbose) {
       // eslint-disable-next-line no-console
       console.info(`jupyter-fs frontend received resources:\n${resources}`);
@@ -73,7 +73,7 @@ async function activate(
     // create the fs resource frontends (ie FileTree instances)
     for (const r of resources) {
       // make one composite disposable for all fs resource frontends
-      disposable.add(FileTree.sidebarFromResource(r, sidebarProps));
+      disposable.add(TreeFinderSidebar.sidebarFromResource(r, sidebarProps));
     }
   }
 
@@ -98,23 +98,23 @@ async function activate(
 
     if (askRequired(resources)) {
       // ask for url template values, if required
-      const dialogElem = document.createElement('div');
+      const dialogElem = document.createElement("div");
       document.body.appendChild(dialogElem);
 
       const handleClose = () => {
         ReactDOM.unmountComponentAtNode(dialogElem);
         dialogElem.remove();
-      }
+      };
 
       const handleSubmit = async (values: {[url: string]: {[key: string]: string}}) => {
         await refreshWidgets({
           resources: await comm.initResourceRequest({
-            resources: resources.map(r => {return {...r, tokenDict: values[r.url]}}),
+            resources: resources.map(r => ({ ...r, tokenDict: values[r.url] })),
             options,
           }),
           options,
         });
-      }
+      };
 
       ReactDOM.render(
         <AskDialog
@@ -127,13 +127,13 @@ async function activate(
       );
     } else {
       // otherwise, just go ahead and refresh the widgets
-      await refreshWidgets({options, resources});
+      await refreshWidgets({ options, resources });
     }
   }
 
   if (settings) {
     // initial setup
-    refresh();
+    void refresh();
 
     // rerun setup whenever relevant settings change
     // eslint-disable-next-line @typescript-eslint/no-misused-promises

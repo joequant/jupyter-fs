@@ -1,0 +1,9 @@
+#!/bin/bash
+mkdir -p /tmp/yarn
+export YARN_CACHE_FOLDER="/tmp/yarn"
+
+python --version
+jupyter --version
+
+make dev_install
+pip install theme-darcula
