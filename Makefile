@@ -45,7 +45,7 @@ clean: ## clean the repository
 	rm -rf binder/.[!.]* binder/*.ipynb
 	## build state
 	cd js; ${YARN} clean:slate
-	rm -rf *.egg-info *junit.xml .*-log.txt .jupyter/ .local/ .pytest_cache/ build/ coverage* dist/ MANIFEST node_modules/ pip-wheel-metadata jupyterfs/labextension
+	rm -rf *.egg-info *junit.xml .*-log.txt .jupyter/ .local/ .pytest_cache/ build/ coverage* dist/ MANIFEST node_modules/ pip-wheel-metadata jupyterfs/labextensionpmorganchase/jupyter-fs/blob/main/js/src/auth.tsx
 	# make -C ./docs clean
 	## package lock files
 	# rm -rf package-lock.json yarn-lock.json js/package-lock.json js/yarn-lock.json
@@ -99,3 +99,4 @@ print-%:
 	@echo '$*=$($*)'
 
 .PHONY: clean dev_install dev_labextension dev_serverextension dist docs help install js test tests
+

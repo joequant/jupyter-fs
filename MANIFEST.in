@@ -25,6 +25,7 @@ prune js/dist
 prune js/lib
 prune **/node_modules
 
+
 # Patterns to exclude from any directory
 global-exclude *~
 global-exclude *.pyc

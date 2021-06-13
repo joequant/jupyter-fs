@@ -39,6 +39,7 @@ def _load_jupyter_server_extension(serverapp):
     host_pattern = ".*$"
 
     if not isinstance(serverapp.contents_manager, MetaManager):
+
         warnings.warn(_mm_config_warning_msg)
         return
 
